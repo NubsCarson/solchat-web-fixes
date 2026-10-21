@@ -6,7 +6,7 @@ A production-ready, decentralized messaging application built on Solana blockcha
 
 ✨ **All Mobile App Features**:
 - ✅ Decentralized, on-chain messaging via IQ Protocol
-- ✅ End-to-end encryption with Hanlock
+- Wallet-to-wallet DM text encryption using the IQ SDK
 - ✅ Real-time message subscriptions
 - ✅ Create and join chat rooms
 - ✅ Send/receive SOL and BONK tokens
@@ -28,7 +28,7 @@ A production-ready, decentralized messaging application built on Solana blockcha
 - **Blockchain**: Solana Web3.js
 - **Wallet Adapter**: Solana Wallet Adapter
 - **State Management**: TanStack React Query + React Context
-- **Encryption**: Hanlock
+- **Encryption**: IQ SDK X25519/HKDF/AES-GCM for DM text
 - **Storage**: IQ Protocol (on-chain)
 
 ## Getting Started
@@ -129,8 +129,6 @@ Navigate to `/chat` to access the messaging interface.
 /help                    - Show help message
 /clear                   - Clear screen
 /color [color]           - Change message color (blue/red/green/yellow)
-/pw [key]                - Set encryption key
-/pw off                  - Disable encryption
 /balance                 - Check wallet balance and tokens
 /sendbonk [addr] [amt]   - Send BONK tokens
 /leave                   - Exit current chat room
@@ -165,10 +163,27 @@ Supports all standard Solana wallet adapters:
 
 ### Encryption
 
-Optional end-to-end encryption using Hanlock:
-- User sets encryption key per session
-- Messages encrypted before sending to chain
-- Automatic decryption on receive (if key is set)
+DM text uses the IQ SDK's multi-recipient encryption: a wallet message signature
+recreates an X25519 key, the public key is published in profile metadata, and
+sender/recipient keys can each unwrap the message key. New sends stop if either
+key is unavailable; no silent plaintext fallback is allowed.
+
+Public room messages are plaintext. DM sender, timestamp, recipient-key list,
+and attachment URLs remain outside the encrypted text. Static wallet-derived
+keys do not provide forward secrecy. This frontend does not implement the
+legacy `/pw` room command or private-group membership/key rotation.
+The Hanlock dependency alone does not establish those features.
+
+### Calls
+
+Approved DM contacts can call while both apps are open. Call offers and encrypted
+SDP/ICE setup use the IQ calls table; audio, camera video and screen sharing use
+browser WebRTC. Camera and screen sharing are optional after an audio call starts.
+Media stops on hangup or wallet change. Signaling still needs wallet-signed
+transactions and a working Solana RPC subscription. Google STUN is configured;
+there is no TURN relay or closed-app push delivery. Recording/proof export is not
+included.
+
 
 ## Deployment
 
@@ -212,7 +227,7 @@ MIT License
 - Built with [Next.js](https://nextjs.org/)
 - Powered by [Solana](https://solana.com/)
 - Wallet integration via [Solana Wallet Adapter](https://github.com/solana-labs/wallet-adapter)
-- Encryption by [Hanlock](https://github.com/hanlock-kr/hanlock)
+- DM encryption primitives from the IQLabs SDK
 - Based on the SolChat mobile app
 
 ---

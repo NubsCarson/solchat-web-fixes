@@ -1,6 +1,7 @@
 'use client';
 
 import { ReactNode } from 'react';
+import {VoiceCallProviderWrapper} from '@/components/voice/VoiceCallProviderWrapper';
 import { ReactQueryProvider } from './query-provider';
 import {  ThemeProvider } from 'styled-components';
 import { PrivyProvider } from './privy-provider';
@@ -17,7 +18,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
           <SolanaWalletProvider>
             <PrivyProvider>
               <AppConnectionProvider>
-                <ReactQueryProvider>{children}</ReactQueryProvider>
+                <ReactQueryProvider><VoiceCallProviderWrapper>{children}</VoiceCallProviderWrapper></ReactQueryProvider>
               </AppConnectionProvider>
             </PrivyProvider>
           </SolanaWalletProvider>

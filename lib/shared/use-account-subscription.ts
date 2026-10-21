@@ -8,7 +8,7 @@
 
 import { useEffect, useRef } from 'react';
 import { PublicKey, type Connection } from '@solana/web3.js';
-import { updateAccountCache, getCachedSignatures } from '@/lib/rpc/cache';
+import { updateAccountCache, getCachedSignatures, invalidateSignatureCache } from '@/lib/rpc/cache';
 
 export interface UseAccountSubscriptionParams {
   /**
@@ -86,91 +86,78 @@ export function useAccountSubscription({
   }, [onNewSignatures]);
 
   useEffect(() => {
+    const seen=seenSignaturesRef.current;
     if (!enabled || !account || !accountKey) {
-      seenSignaturesRef.current.clear();
+      seen.clear();
       return;
     }
 
     let subscriptionId: number | null = null;
     let isActive = true;
+    let revision = 0;
+    let inFlight = false;
+    let failures = 0;
+    let initialPending = true;
 
     const fetchLatestSignatures = async (limit: number): Promise<string[]> => {
       const infos = await getCachedSignatures(connection, account, limit);
       return infos.map((info) => info.signature).filter(Boolean);
     };
 
+    const schedule = () => {
+      if (fetchTimeoutRef.current || !isActive) return;
+      const wait = Math.max(150, 1000 - (Date.now() - lastFetchRef.current));
+      fetchTimeoutRef.current = setTimeout(async () => {
+        fetchTimeoutRef.current = null;
+        if (!isActive || inFlight || initialPending) { if (isActive) schedule(); return; }
+        const started = revision;
+        inFlight = true;
+        lastFetchRef.current = Date.now();
+        try {
+          invalidateSignatureCache(accountKey);
+          const signatures = await fetchLatestSignatures(fetchLimit);
+          if (!isActive) return;
+          const fresh = signatures.filter(sig => !seen.has(sig)).reverse();
+          if (fresh.length) {
+            await handlerRef.current(fresh);
+            if (!isActive) return;
+            failures = 0;
+            for (const sig of fresh) seen.add(sig);
+            while (seen.size > 1000) seen.delete(seen.values().next().value!);
+          }
+        } catch (error) {
+          console.error(`[${logPrefix}] Failed to process account change:`, error);
+          if (++failures < 3) revision++;
+        } finally {
+          inFlight = false;
+          if (revision !== started) schedule();
+        }
+      }, wait);
+    };
+
     const subscribe = async () => {
       try {
+        // Subscribe first: writes during the initial snapshot must trigger a
+        // trailing read rather than disappearing into the baseline cache.
+        subscriptionId = connection.onAccountChange(account, info => {
+          if (!isActive) return;
+          updateAccountCache(accountKey, info);
+          invalidateSignatureCache(accountKey);
+          revision++;
+          schedule();
+        }, commitment);
+        subscriptionRef.current = subscriptionId;
+        const initialRevision = revision;
         const initial = await fetchLatestSignatures(fetchLimit);
-        for (const sig of initial) {
-          seenSignaturesRef.current.add(sig);
+        initialPending = false;
+        if (!isActive) return;
+        if (revision === initialRevision) {
+          for (const sig of initial) seen.add(sig);
+        } else {
+          schedule();
         }
-        console.log(`[${logPrefix}] Initial seen signatures: ${seenSignaturesRef.current.size}`);
-
-        // Subscribe to account changes
-        const id = connection.onAccountChange(
-          account,
-          async (info) => {
-            if (!isActive) return;
-
-            // Update cache
-            updateAccountCache(accountKey, info);
-            // Don't invalidate signature cache - we're using seen signatures tracking instead
-            // invalidateSignatureCache(accountKey);
-
-            // Debounce: prevent RPC spam from rapid account changes
-            const now = Date.now();
-            if (now - lastFetchRef.current < 1000) {
-              console.log(`[${logPrefix}] Account changed, but debouncing (< 1s since last fetch)`);
-              return;
-            }
-
-            // Clear any pending timeout
-            if (fetchTimeoutRef.current) {
-              clearTimeout(fetchTimeoutRef.current);
-            }
-
-            // Delay fetch slightly to batch rapid changes
-            fetchTimeoutRef.current = setTimeout(async () => {
-              if (!isActive) return;
-
-              lastFetchRef.current = Date.now();
-              console.log(`[${logPrefix}] Account changed, fetching new signatures...`);
-
-              try {
-                const signatures = await fetchLatestSignatures(fetchLimit);
-
-                // Filter out already-seen signatures
-                const fresh = signatures.filter((sig) => !seenSignaturesRef.current.has(sig));
-
-                if (fresh.length === 0) {
-                  console.log(`[${logPrefix}] No new signatures found`);
-                  return;
-                }
-
-                console.log(`[${logPrefix}] Found ${fresh.length} new signatures`);
-
-                // Mark as seen and reverse to get chronological order (oldest first)
-                const newSigs: string[] = [];
-                for (const sig of fresh.reverse()) {
-                  seenSignaturesRef.current.add(sig);
-                  newSigs.push(sig);
-                }
-
-                // Call handler with new signatures
-                await handlerRef.current(newSigs);
-              } catch (error) {
-                console.error(`[${logPrefix}] Failed to process account change:`, error);
-              }
-            }, 150);
-          },
-          commitment
-        );
-
-        subscriptionId = id;
-        subscriptionRef.current = id;
-        console.log(`[${logPrefix}] Subscribed to ${accountKey.slice(0, 8)}... (id: ${id})`);
       } catch (error) {
+        initialPending = false;
         console.warn(`[${logPrefix}] Failed to subscribe:`, error);
       }
     };
@@ -188,9 +175,9 @@ export function useAccountSubscription({
         connection.removeAccountChangeListener(subscriptionId).catch(() => undefined);
         subscriptionRef.current = null;
       }
-      seenSignaturesRef.current.clear();
+      seen.clear();
     };
-  }, [connection, accountKey, commitment, enabled, fetchLimit, logPrefix]);
+  }, [connection, account, accountKey, commitment, enabled, fetchLimit, logPrefix]);
 
   return { markSignatureSeen };
 }

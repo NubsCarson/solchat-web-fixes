@@ -8,6 +8,7 @@ import { MessageBubble } from '@/components/ui/message-bubble';
 import { MessageInputForm } from '@/components/chat/message-input-form';
 import { NotificationToggle } from '@/components/ui/notification-toggle';
 import { Button } from 'react95';
+import {DMCallButton} from '@/components/voice/DMCallButton';
 
 type DmChatModalProps = {
   open: boolean;
@@ -103,7 +104,8 @@ export function DmChatModal({
             DM with {shortenAddress(chatFriend.address)}
           </h3>
           <div className="flex items-center gap-3">
-            <NotificationToggle
+            <DMCallButton targetPubkey={chatFriend.address} disabled={chatFriend.status !== "approved"} />
+              <NotificationToggle
               enabled={dmNotificationsEnabled}
               onToggle={onToggleNotifications}
               label="NOTI"

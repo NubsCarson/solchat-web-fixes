@@ -155,7 +155,7 @@ export async function getCachedTransaction(
 
   // Make the request
   const promise = runWithRpcRateLimit(() => connection.getTransaction(signature, {
-    maxSupportedTransactionVersion: 0,
+    maxSupportedTransactionVersion: 1,
     commitment: 'confirmed',
   }), { endpoint: connection.rpcEndpoint })
 

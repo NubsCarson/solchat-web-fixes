@@ -347,16 +347,14 @@ function WalletFriendsList({ dmQueryAddress }: FriendsListProps) {
                 // Match the CLI row layout: row metadata (id, sender, timestamp)
                 // stays in clear on the row and only the message body is encrypted
                 // into `text`. Decryption yields plain text, not wrapped JSON.
-                const body = recipientPubKey && dmKeys.pubHex
-                    ? await encryptDmPayload(dmKeys.pubHex, recipientPubKey, plainText)
-                    : plainText;
+                const body = await encryptDmPayload(dmKeys.pubHex ?? '', recipientPubKey ?? '', plainText);
                 const row = {
                     id: payload.id,
                     text: body,
                     sender: payload.sender,
                     timestamp: payload.timestamp,
                     ...(payload.file ? { file: payload.file } : {}),
-                    ...(recipientPubKey && dmKeys.pubHex ? { enc: 1 } : {}),
+                    enc: 1,
                 };
                 return iqlabs.writer.writeConnectionRow(
                     connection,

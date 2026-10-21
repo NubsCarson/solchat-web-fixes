@@ -82,7 +82,7 @@ export function useFriends(params: UseFriendsParams): UseFriendsReturn {
         let tx;
         try {
           tx = await readConnection.getTransaction(sig.signature, {
-            maxSupportedTransactionVersion: 0,
+            maxSupportedTransactionVersion: 1,
           });
         } catch {
           continue;

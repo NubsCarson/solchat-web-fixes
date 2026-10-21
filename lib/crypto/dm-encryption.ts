@@ -99,6 +99,9 @@ export async function encryptDmPayload(
   recipientPubHex: string,
   plainText: string,
 ): Promise<string> {
+  if (!/^[a-f0-9]{64}$/i.test(senderPubHex) || !/^[a-f0-9]{64}$/i.test(recipientPubHex)) {
+    throw new Error("Encryption keys are not ready. Reconnect your wallet and ask the recipient to initialize encryption before retrying.");
+  }
   const plaintext = encoder.encode(plainText);
   const result = await multiEncrypt([senderPubHex, recipientPubHex], plaintext);
 
