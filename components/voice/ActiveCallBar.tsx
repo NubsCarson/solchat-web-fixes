@@ -51,6 +51,10 @@ export function ActiveCallBar() {
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
   const [audioBlocked, setAudioBlocked] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const callBarRef = useRef<HTMLDivElement>(null);
+  const [callBarHeight, setCallBarHeight] = useState(0);
+
+
 
   const {
     status,
@@ -68,6 +72,17 @@ export function ActiveCallBar() {
     localStream,
     remoteStream,
   } = voiceCall;
+
+  useEffect(() => {
+    const bar = callBarRef.current;
+    if (!bar) return;
+    const update = () => setCallBarHeight(bar.getBoundingClientRect().height);
+    update();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(update);
+    observer.observe(bar);
+    return () => observer.disconnect();
+  }, [status]);
 
   const hasRemoteVideo = !!remoteStream?.getVideoTracks().length;
   const hasLocalVideo = isVideoEnabled || isScreenSharing;
@@ -97,7 +112,7 @@ export function ActiveCallBar() {
     return (
       <div
         role="alert"
-        className="fixed bottom-4 left-4 z-[9990] bg-black border border-red-500 p-3 text-white"
+        className="fixed bottom-4 left-4 right-4 sm:right-auto max-w-full break-words z-[9990] bg-black border border-red-500 p-3 text-white"
       >
         {error} <button onClick={() => void endCall()}>Dismiss</button>
       </div>
@@ -149,7 +164,7 @@ export function ActiveCallBar() {
       <audio ref={remoteAudioRef} autoPlay />
       {audioBlocked && remoteStream && (
         <button
-          className="fixed bottom-4 left-4 z-[9999] bg-black border border-green-500 p-3 text-white"
+          className="fixed bottom-4 left-4 right-4 sm:right-auto min-h-11 z-[9999] bg-black border border-green-500 p-3 text-white"
           onClick={() => {
             void remoteAudioRef.current
               ?.play()
@@ -162,11 +177,12 @@ export function ActiveCallBar() {
       {/* Video Overlay - Only show if there is actual video */}
       {showVideoOverlay && (
         <div
+          style={isExpanded ? { top: callBarHeight } : undefined}
           className={`fixed border-2 border-gray-700 bg-black rounded-lg overflow-hidden shadow-2xl z-[9990] flex flex-col transition-all duration-300 ease-in-out
           ${
             isExpanded
-              ? "inset-0 top-[52px] bottom-0 left-0 right-0 w-full h-auto rounded-none border-0"
-              : "bottom-20 right-4 w-72 h-48"
+              ? "inset-0 bottom-0 left-0 right-0 w-full h-auto rounded-none border-0"
+              : "bottom-20 right-4 w-72 max-w-[calc(100vw-2rem)] h-48"
           }`}
         >
           {/* Remote Video (Main) */}
@@ -190,7 +206,7 @@ export function ActiveCallBar() {
             {/* Expand/Collapse Toggle */}
             <button
               onClick={() => setIsExpanded(!isExpanded)}
-              className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/80 text-white rounded cursor-pointer z-50 transition-colors"
+              className="absolute top-2 right-2 min-h-11 min-w-11 flex items-center justify-center p-1.5 bg-black/50 hover:bg-black/80 text-white rounded cursor-pointer z-50 transition-colors"
               title={isExpanded ? "Minimize" : "Maximize"}
             >
               {isExpanded ? (
@@ -244,8 +260,8 @@ export function ActiveCallBar() {
         </div>
       )}
 
-      <div className="fixed top-0 left-0 right-0 bg-green-700 text-white py-2 px-4 flex items-center justify-between z-[9999]">
-        <div className="flex items-center gap-3">
+      <div ref={callBarRef} className="fixed top-0 left-0 right-0 bg-green-700 text-white py-2 px-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 z-[9999]">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
           <div className="flex items-center gap-1 text-green-200">
             <ChainIcon />
             <span className="text-xs">ON-CHAIN</span>
@@ -265,11 +281,11 @@ export function ActiveCallBar() {
           </span>
           {error && <span className="text-red-200 text-xs ml-2">{error}</span>}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-end gap-2 shrink-0">
           <button
             onClick={toggleMute}
             disabled={status !== "active"}
-            className={`p-2 rounded-full transition-colors ${
+            className={`min-h-11 min-w-11 flex items-center justify-center p-2 rounded-full transition-colors ${
               isMuted
                 ? "bg-red-500 hover:bg-red-600"
                 : "bg-gray-600 hover:bg-gray-700"
@@ -282,7 +298,7 @@ export function ActiveCallBar() {
           <button
             onClick={toggleVideo}
             disabled={status !== "active"}
-            className={`p-2 rounded-full transition-colors ${
+            className={`min-h-11 min-w-11 flex items-center justify-center p-2 rounded-full transition-colors ${
               isVideoEnabled
                 ? "bg-green-600 hover:bg-green-700"
                 : "bg-gray-600 hover:bg-gray-700"
@@ -294,7 +310,7 @@ export function ActiveCallBar() {
 
           <button
             onClick={() => toggleScreenShare()}
-            className={`p-2 rounded-full transition-colors ${
+            className={`min-h-11 min-w-11 flex items-center justify-center p-2 rounded-full transition-colors ${
               isScreenSharing
                 ? "bg-blue-600 hover:bg-blue-700"
                 : "bg-gray-600 hover:bg-gray-700"
@@ -307,7 +323,7 @@ export function ActiveCallBar() {
 
           <button
             onClick={endCall}
-            className="flex items-center gap-2 px-4 py-1 rounded-full bg-red-500 hover:bg-red-600 transition-colors"
+            className="min-h-11 flex items-center gap-2 px-4 py-1 rounded-full bg-red-500 hover:bg-red-600 transition-colors"
           >
             <PhoneOffIcon />
             End

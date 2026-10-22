@@ -102,3 +102,25 @@ test('blocked autoplay presents an explicit retry and successful playback clears
     expect(view.plays.every((element) => element === document.querySelector('audio'))).toBe(true);
   } finally { await view.close(); }
 });
+
+ test('expanded video follows the measured call bar when controls wrap and releases its observer', async () => {
+  let onResize, disconnected = false;
+  globalThis.ResizeObserver = class {
+    constructor(callback) { onResize = callback; }
+    observe() {}
+    disconnect() { disconnected = true; }
+  };
+  const view = await setup({ remoteVideo: true });
+  try {
+    const expand = document.querySelector('button[title="Maximize"]');
+    const bar = [...document.querySelectorAll('div')].find(el => el.className.includes('fixed top-0 left-0 right-0'));
+    bar.getBoundingClientRect = () => ({ height: 124 });
+    await act(async () => { onResize(); expand.click(); });
+    const overlay = document.querySelector('video').closest('.fixed');
+    expect(overlay.style.top).toBe('124px');
+    bar.getBoundingClientRect = () => ({ height: 168 });
+    await act(async () => onResize());
+    expect(overlay.style.top).toBe('168px');
+  } finally { await view.close(); delete globalThis.ResizeObserver; }
+  expect(disconnected).toBe(true);
+});
