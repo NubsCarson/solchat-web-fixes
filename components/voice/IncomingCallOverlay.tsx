@@ -7,7 +7,7 @@
  * Uses the global VoiceCallContext to detect and respond to calls.
  */
 
-import { PhoneIcon, PhoneOffIcon, ChainIcon } from "./call-icons";
+import { PhoneIcon, PhoneOffIcon, ChainIcon, VideoIcon } from "./call-icons";
 import { useVoiceCallContext } from "@/lib/voice/VoiceCallContext";
 
 // Icons
@@ -61,9 +61,7 @@ export function IncomingCallOverlay() {
             onClick={() => acceptCall(true)}
             className="flex items-center justify-center gap-2 px-2 py-3 min-h-11 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
           >
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z" />
-            </svg>
+            <VideoIcon className="w-5 h-5" />
             Video
           </button>
         </div>
