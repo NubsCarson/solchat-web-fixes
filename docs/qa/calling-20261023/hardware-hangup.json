@@ -1,0 +1,5 @@
+{
+  "caller": "LOCAL QA / HARDWARE MEDIA / LOCAL PEER ONLY | closed | closed | CAPTURE getUserMedia:audio:ended:enabled getUserMedia:audio:ended:disabled getUserMedia:video:ended:enabled getDisplayMedia:video:ended:enabled getUserMedia:video:ended:enabled",
+  "receiver": "LOCAL QA / SYNTHETIC MEDIA / NO MICROPHONE OR SCREEN CAPTURE | closed",
+  "callerCallButton": true
+}

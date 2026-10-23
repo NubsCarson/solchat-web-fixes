@@ -1,6 +1,6 @@
 # Calling integration review
 
-Local proposal; no deployment, mainnet test, or new infrastructure is enabled.
+Draft review; no deployment, mainnet test, or new infrastructure is enabled.
 
 ## Current scope
 
@@ -18,11 +18,12 @@ Recording and secret-key/proof export from the old branch are excluded.
 
 ## SDK dependency
 
-The bounded reader candidate is local commit `298905f` in the SDK checkout. It
-adds optional byte/chunk/history limits to the existing decoder and exports
-`ReadLimitError`. Existing callers without limits retain their behavior. This
-candidate is based on the pending confirmation/upload-retry work, not an already
-released main revision.
+The bounded reader change is [SDK PR #27](https://github.com/IQCoreTeam/iqlabs-solana-sdk/pull/27).
+It adds optional byte/chunk/history limits to the existing decoder and exports
+`ReadLimitError`, while preserving existing callers without limits. It targets
+`feat/writerow-speed` independently of confirmation/retry PR #25. The combined
+local QA artifact also included #25; the final release/pin must cover the required
+changes rather than assuming the existing npm version contains them.
 
 The integration is tested with a packed local build. Published SDK 0.3.6 does not
 provide the new API. Before shipping, review/release the SDK changes and pin that
@@ -38,8 +39,7 @@ The no-TURN checkpoint is `541c5bc` and branch
 
 For now, keep the existing direct WebRTC/Google STUN path. This avoids requiring
 a new relay operator, billing account, credential service or hosting arrangement.
-The user explicitly chose to defer TURN rather than depend on Cloudflare or run
-a public relay. Google STUN is address discovery, not a TURN relay fallback.
+No new relay operator or credential service is required by this draft. Google STUN is address discovery, not a TURN relay fallback.
 
 Known consequences: calls can fail on restrictive NATs/firewalls; direct peers
 can learn each other's public IP. STUN and RPC providers also see connection
@@ -71,7 +71,7 @@ unaudited status is not a basis for shipping privacy guarantees to SolChat users
 
 ## Evidence and remaining acceptance
 
-- No-TURN integration: 100 app tests; TypeScript and production build pass.
+- No-TURN integration: 101 app tests; TypeScript and production build pass.
 - Real Mac microphone/camera and native tab sharing were exercised locally;
   camera-off, native Stop Sharing and capture teardown were verified.
 - Final no-TURN build connected two browser wallets through a local validator,
